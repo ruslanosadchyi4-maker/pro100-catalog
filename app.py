@@ -19,6 +19,10 @@ if not api_key:
 # Ініціалізація клієнта Gemini
 client = genai.Client(api_key=api_key)
 
+# Ініціалізація сховища історії у st.session_state
+if "catalog_items" not in st.session_state:
+	st.session_state.catalog_items = []
+
 # --- Бокова панель (Sidebar) ---
 with st.sidebar:
 	st.title("🛍️ PRO100 Catalog")
@@ -37,12 +41,12 @@ with st.sidebar:
 	)
 
 	st.markdown("---")
-	st.caption("🚀 Версія: 1.1.0 (Production)")
+	st.caption("🚀 Версія: 1.2.0 (Production)")
 	st.caption("☁️ Розгорнуто на Streamlit Cloud")
 
 # --- Головний екран ---
 st.title("📦 Автоматизований каталог товарів")
-st.markdown("Завантажте зображення товару, щоб ШІ проаналізував його та сформував картку.")
+st.markdown("Завантажте зображення товару, щоб ШІ проаналізував його та додав до каталогу.")
 
 # Завантаження файлу
 uploaded_file = st.file_uploader("Виберіть зображення товару", type=["jpg", "jpeg", "png"])
@@ -60,20 +64,37 @@ if uploaded_file is not None:
 			with st.spinner("ШІ аналізує зображення... Зачекайте секунду."):
 				try:
 					# Запит до моделі Gemini
+					prompt = "Проаналізуй це зображення товару для каталогу. Надай коротку назву, категорію та детальний опис."
+					if analysis_mode == "Поглиблений опис":
+						prompt += " Зроби опис максимально розгорнутим, додавши можливі характеристики матеріалу та призначення."
+
 					response = client.models.generate_content(
 						model='gemini-3.5-flash',
-						contents=[
-							image,
-							"Проаналізуй це зображення товару для каталогу. Надай назву, категорію та детальний опис."
-						]
+						contents=[image, prompt]
 					)
 
-					st.success("Аналіз успішно завершено!")
+					st.success("Товар успішно проаналізовано та додано до каталогу!")
 
-					# Структурований вивід у контейнері
+					# Зберігаємо результат в історію сесії
+					new_item = {
+						"mode": analysis_mode,
+						"description": response.text
+					}
+					st.session_state.catalog_items.append(new_item)
+
+					# Структурований вивід поточного результату
 					with st.container(border=True):
-						st.markdown("#### 🏷️ Результати класифікації")
+						st.markdown("#### 🏷️ Результат поточного аналізу")
 						st.write(response.text)
 
 				except Exception as e:
 					st.error(f"Сталася помилка під час аналізу: {e}")
+
+# --- Вивід історії каталогу ---
+if st.session_state.catalog_items:
+	st.markdown("---")
+	st.markdown("### 📚 Історія збережених позицій у каталозі")
+
+	for idx, item in enumerate(reversed(st.session_state.catalog_items), 1):
+		with st.expander(f"📦 Товар #{len(st.session_state.catalog_items) - idx + 1} ({item['mode']})"):
+			st.write(item["description"])
