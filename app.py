@@ -1,3 +1,14 @@
+import streamlit as st
+from google import genai
+
+# Безпечне отримання ключа
+api_key = st.secrets.get("GEMINI_APY_KEY")
+if api_key:
+	client = genai.Client(api_key=api_key)
+
+# --- Юокова панель ---
+with st.sidebar:
+	st.title("PRO100 Catalog")
 # --- Створення стильної бокової панелі (Sidebar) ---
 with st.sidebar:
 	st.title("🛍️ PRO100 Catalog")
@@ -21,3 +32,6 @@ with st.sidebar:
 	st.markdown("---")
 	st.caption("🚀 Версія: 1.1.0 (Production)")
 	st.caption("☁️ Розгорнуто на Streamlit Cloud")
+
+ 
+
