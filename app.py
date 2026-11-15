@@ -61,7 +61,7 @@ if uploaded_file is not None:
 				try:
 					# Запит до моделі Gemini
 					response = client.models.generate_content(
-						model='gemini-2.5-flash',
+						model='gemini-3.5-flash',
 						contents=[
 							image,
 							"Проаналізуй це зображення товару для каталогу. Надай назву, категорію та детальний опис."
