@@ -28,11 +28,22 @@ if "catalog_items" not in st.session_state:
 # --- Бокова панель (Sidebar) ---
 with st.sidebar:
 	st.title("🛍️ PRO100 Catalog")
-	st.markdown("### Керування проєктом")
+	st.markdown("### ⚙️ Налаштування генерації")
 
-	analysis_mode = st.selectbox(
-		"Режим обробки",
-		["Стандартний аналіз", "Поглиблений опис"]
+	# Вибір мови
+	target_language = st.selectbox(
+		"Мова опису",
+		["Українська", "English", "Español"]
+	)
+
+	# Вибір стилю/тону
+	tone_style = st.selectbox(
+		"Стиль комунікації",
+		[
+			"Комерційний (стандарт)",
+			"Емоційний (для Instagram / TikTok)",
+			"Технічний / B2B (для складу)"
+		]
 	)
 
 	st.markdown("---")
@@ -43,12 +54,12 @@ with st.sidebar:
 	)
 
 	st.markdown("---")
-	st.caption("🚀 Версія: 1.4.0 (Pro)")
+	st.caption("🚀 Версія: 1.5.0 (Pro)")
 	st.caption("☁️ Розгорнуто на Streamlit Cloud")
 
 # --- Головний екран ---
 st.title("📦 Автоматизований каталог товарів")
-st.markdown("Завантажте зображення товару, щоб ШІ згенерував картку, артикул, ціну та теги.")
+st.markdown("Завантажте зображення товару, щоб ШІ згенерував картку, артикул, ціну та теги з урахуванням обраної мови й стилю.")
 
 # Завантаження файлу
 uploaded_file = st.file_uploader("Виберіть зображення товару", type=["jpg", "jpeg", "png"])
@@ -63,20 +74,22 @@ if uploaded_file is not None:
 	with col2:
 		st.markdown("### 📊 Статус обробки")
 		if st.button("🚀 Запустити аналіз ШІ", type="primary"):
-			with st.spinner("ШІ аналізує товар, формує ціну та артикул..."):
+			with st.spinner("ШІ аналізує товар з урахуванням налаштувань..."):
 				try:
-					prompt = """
-					Проаналізуй це зображення товару для комерційного каталогу. Надай інформацію у такому форматі:
+					# Динамічний промпт з урахуванням мови та стилю
+					prompt = f"""
+					Проаналізуй це зображення товару для комерційного каталогу.
+					ВАЖЛИВО: Увесь текст відповіді має бути написаний мовою: {target_language}.
+					Стиль опису повинен відповідати вимозі: {tone_style}.
+
+					Надай інформацію у такому форматі:
 					- **Назва:** коротка та приваблива назва товару
 					- **Категорія:** до якої категорії належить товар
 					- **Артикул (SKU):** згенеруй унікальний логічний артикул (наприклад, PRD-XXXXX)
 					- **Орієнтовна ціна:** запропонуй ринкову ціну в євро (€)
 					- **Теги:** 3-5 ключових тегів через кому
-					- **Опис:** детальний комерційний опис товару
+					- **Опис:** комерційний опис товару відповідно до обраного стилю
 					"""
-
-					if analysis_mode == "Поглиблений опис":
-						prompt += " Зроби опис максимально розгорнутим, додавши можливі матеріали та сфери застосування."
 
 					response = client.models.generate_content(
 						model='gemini-3.5-flash',
@@ -87,7 +100,7 @@ if uploaded_file is not None:
 
 					# Зберігаємо результат в історію сесії
 					new_item = {
-						"mode": analysis_mode,
+						"mode": f"{target_language} | {tone_style}",
 						"description": response.text
 					}
 					st.session_state.catalog_items.append(new_item)
@@ -108,10 +121,9 @@ if st.session_state.catalog_items:
 	with col_title:
 		st.markdown("### 📚 Історія збережених позицій у каталозі")
 	with col_btn:
-		# Генерація CSV для експорту
 		csv_buffer = io.StringIO()
 		writer = csv.writer(csv_buffer)
-		writer.writerow(["ID", "Mode", "Content"])
+		writer.writerow(["ID", "Settings", "Content"])
 		for idx, item in enumerate(st.session_state.catalog_items, 1):
 			writer.writerow([idx, item["mode"], item["description"]])
 
