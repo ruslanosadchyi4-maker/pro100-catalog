@@ -1,6 +1,8 @@
 import streamlit as st
 from google import genai
 from PIL import Image
+import csv
+import io
 
 # Налаштування сторінки
 st.set_page_config(
@@ -41,7 +43,7 @@ with st.sidebar:
 	)
 
 	st.markdown("---")
-	st.caption("🚀 Версія: 1.3.0 (Production)")
+	st.caption("🚀 Версія: 1.4.0 (Pro)")
 	st.caption("☁️ Розгорнуто на Streamlit Cloud")
 
 # --- Головний екран ---
@@ -63,14 +65,13 @@ if uploaded_file is not None:
 		if st.button("🚀 Запустити аналіз ШІ", type="primary"):
 			with st.spinner("ШІ аналізує товар, формує ціну та артикул..."):
 				try:
-					# Покращений промпт для генерації цін, артикулів та тегів
 					prompt = """
 					Проаналізуй це зображення товару для комерційного каталогу. Надай інформацію у такому форматі:
 					- **Назва:** коротка та приваблива назва товару
 					- **Категорія:** до якої категорії належить товар
 					- **Артикул (SKU):** згенеруй унікальний логічний артикул (наприклад, PRD-XXXXX)
 					- **Орієнтовна ціна:** запропонуй ринкову ціну в євро (€)
-					- **Теги:** 3-5 ключових тегів через кому (наприклад: стильно, новинка, аксесуар)
+					- **Теги:** 3-5 ключових тегів через кому
 					- **Опис:** детальний комерційний опис товару
 					"""
 
@@ -99,12 +100,30 @@ if uploaded_file is not None:
 				except Exception as e:
 					st.error(f"Сталася помилка під час аналізу: {e}")
 
-# --- Вивід історії каталогу ---
+# --- Вивід історії каталогу та експорт ---
 if st.session_state.catalog_items:
 	st.markdown("---")
-	st.markdown("### 📚 Історія збережених позицій у каталозі")
 
-	for idx, item in enumerate(reversed(st.session_state.catalog_items), 1):
-		item_number = len(st.session_state.catalog_items) - idx + 1
-		with st.expander(f"📦 Товар #{item_number} ({item['mode']})"):
-			st.write(item["description"])
+	col_title, col_btn = st.columns([2, 1])
+	with col_title:
+		st.markdown("### 📚 Історія збережених позицій у каталозі")
+	with col_btn:
+		# Генерація CSV для експорту
+		csv_buffer = io.StringIO()
+		writer = csv.writer(csv_buffer)
+		writer.writerow(["ID", "Mode", "Content"])
+		for idx, item in enumerate(st.session_state.catalog_items, 1):
+			writer.writerow([idx, item["mode"], item["description"]])
+
+		st.download_button(
+			label="📥 Експортувати каталог (CSV)",
+			data=csv_buffer.getvalue(),
+			file_name="pro100_catalog.csv",
+			mime="text/csv",
+			type="secondary"
+		)
+
+for idx, item in enumerate(reversed(st.session_state.catalog_items), 1):
+	item_number = len(st.session_state.catalog_items) - idx + 1
+	with st.expander(f"📦 Товар #{item_number} ({item['mode']})"):
+		st.write(item["description"])
