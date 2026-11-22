@@ -303,7 +303,7 @@ if uploaded_files:
 			with ThreadPoolExecutor(
 				max_workers=min(max_workers, total_batches)
 			) as executor:
-			future_to_idx = {
+				future_to_idx = {
 				executor.submit(
 					analyze_photo_batch, batch, target_language, tone_style
 				): b_idx
